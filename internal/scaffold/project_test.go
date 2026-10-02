@@ -103,3 +103,44 @@ func TestGeneratedStandardProjectBuilds(t *testing.T) {
 		t.Fatalf("generated project: %v\n%s", err, output)
 	}
 }
+
+func TestLegacyProjectRemainsUsable(t *testing.T) {
+	root := t.TempDir()
+	if err := Create(root, Options{Name: "app"}); err != nil {
+		t.Fatal(err)
+	}
+	project := filepath.Join(root, "app")
+	if err := os.Rename(filepath.Join(project, "goweld.json"), filepath.Join(project, "goforge.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Generate(project, "model", "User"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(project, "goforge.json")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(project, "goweld.json")); !os.IsNotExist(err) {
+		t.Fatal("changed legacy project configuration")
+	}
+}
+
+func TestNewConfigTakesPrecedenceOverLegacy(t *testing.T) {
+	root := t.TempDir()
+	if err := Create(root, Options{Name: "app"}); err != nil {
+		t.Fatal(err)
+	}
+	project := filepath.Join(root, "app")
+	if err := os.WriteFile(filepath.Join(project, "goforge.json"), []byte(`{"name":"legacy"}`), 0640); err != nil {
+		t.Fatal(err)
+	}
+	got, err := Load(project)
+	if err != nil || got.Name != "app" {
+		t.Fatalf("wrong config: %+v %v", got, err)
+	}
+	if err := os.WriteFile(filepath.Join(project, "goweld.json"), []byte("invalid"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(project); err == nil {
+		t.Fatal("silently fell back from invalid GoWeld configuration")
+	}
+}

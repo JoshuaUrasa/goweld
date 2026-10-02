@@ -1,4 +1,4 @@
-# Contributing to GoForge
+# Contributing to GoWeld
 
 Bug reports, documentation improvements and new framework/database templates are welcome.
 
@@ -7,10 +7,10 @@ Bug reports, documentation improvements and new framework/database templates are
 Requires Go 1.26.5 or newer.
 
 ```sh
-git clone https://github.com/JoshuaUrasa/goforge.git
-cd goforge
-go build -o bin/goforge ./cmd/goforge
-./bin/goforge help
+git clone https://github.com/JoshuaUrasa/goweld.git
+cd goweld
+go build -o bin/goweld ./cmd/goweld
+./bin/goweld help
 ```
 
 ## Before submitting a pull request
@@ -24,5 +24,6 @@ go build -o bin/goforge ./cmd/goforge
 Framework/database templates live in `internal/scaffold/templates.go`. Option validation and component generators live in `internal/scaffold/project.go`. When adding a template, verify that a generated project compiles and document any setup requirements.
 
 For bug reports, include your operating system, `go version`, command used, expected result and actual error. Remove credentials from any output you share.
+
 
 Contributions are provided under the project's [MIT license](LICENSE).

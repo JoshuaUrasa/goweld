@@ -44,7 +44,7 @@ func (u terminalUI) paint(style, text string) string {
 
 func (u terminalUI) banner() {
 	fmt.Fprintln(u.out)
-	fmt.Fprintln(u.out, u.paint(bold+cyan, "  GO")+u.paint(bold+purple, "FORGE")+u.paint(dim, "  /  v0.1.0"))
+	fmt.Fprintln(u.out, u.paint(bold+cyan, "  GO")+u.paint(bold+purple, "WELD")+u.paint(dim, "  /  v"+version))
 	fmt.Fprintln(u.out, u.paint(dim, "  Build your next Go idea."))
 	fmt.Fprintln(u.out, u.paint(dim, "  ──────────────────────────────────────────"))
 	fmt.Fprintln(u.out)

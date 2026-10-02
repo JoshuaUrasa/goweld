@@ -1,7 +1,7 @@
 # Local builds and development logs
 /tmp/
 /bin/
-/goforge
+/goweld
 
 # Locally generated test projects
 /shop/

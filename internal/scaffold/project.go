@@ -75,7 +75,7 @@ func Create(parent string, o Options) error {
 	if err != nil {
 		return err
 	}
-	files["goforge.json"] = string(data) + "\n"
+	files["goweld.json"] = string(data) + "\n"
 	for path, source := range files {
 		if strings.HasSuffix(path, ".go") {
 			formatted, err := format.Source([]byte(source))
@@ -110,12 +110,17 @@ func Create(parent string, o Options) error {
 
 func Load(root string) (Options, error) {
 	var o Options
-	data, err := os.ReadFile(filepath.Join(root, "goforge.json"))
+	filename := "goweld.json"
+	data, err := os.ReadFile(filepath.Join(root, filename))
+	if os.IsNotExist(err) {
+		filename = "goforge.json"
+		data, err = os.ReadFile(filepath.Join(root, filename))
+	}
 	if err != nil {
-		return o, fmt.Errorf("run this command from a GoForge project root: %w", err)
+		return o, fmt.Errorf("run this command from a GoWeld project root: %w", err)
 	}
 	if err := json.Unmarshal(data, &o); err != nil {
-		return o, fmt.Errorf("invalid goforge.json: %w", err)
+		return o, fmt.Errorf("invalid %s: %w", filename, err)
 	}
 	if err := o.validate(); err != nil {
 		return o, err

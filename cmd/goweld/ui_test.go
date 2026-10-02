@@ -38,7 +38,7 @@ func TestProgressReportsResultWithoutTerminalEscapes(t *testing.T) {
 func TestNoColor(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 	ui := newUI(os.Stdout)
-	if ui.color || strings.Contains(ui.paint(cyan, "GoForge"), "\033") {
+	if ui.color || strings.Contains(ui.paint(cyan, "GoWeld"), "\033") {
 		t.Fatal("NO_COLOR was ignored")
 	}
 }
@@ -69,7 +69,7 @@ func TestNewInstallRunsTidyAndPreservesProjectOnFailure(t *testing.T) {
 			if readErr != nil || string(command) != "mod tidy" {
 				t.Fatalf("install command: %q %v", command, readErr)
 			}
-			if _, err := os.Stat(filepath.Join(root, "app", "goforge.json")); err != nil {
+			if _, err := os.Stat(filepath.Join(root, "app", "goweld.json")); err != nil {
 				t.Fatal("project lost after install", err)
 			}
 			if fails {

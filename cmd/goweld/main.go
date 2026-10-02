@@ -9,23 +9,28 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
-	"github.com/JoshuaUrasa/goforge/internal/scaffold"
+	"github.com/JoshuaUrasa/goweld/internal/scaffold"
 )
 
-const help = `GoForge — scaffold Go applications
+const version = "0.2.0"
+
+const help = `GoWeld — scaffold Go applications
 
 Usage:
-  goforge new NAME [--install] [--module PATH] [--framework std|gin|echo]
+  goweld new [NAME] [--interactive | --no-interactive] [--install]
+                   [--module PATH] [--framework std|gin|echo]
                    [--database none|postgres|mysql|sqlite] [--orm none|sql|gorm]
-  goforge generate model|handler|service NAME
-  goforge install
-  goforge run
-  goforge build
-  goforge version
+  goweld generate model|handler|service NAME
+  goweld install
+  goweld run
+  goweld build
+  goweld version
 
 Run generate, install, run and build from the generated project root.
 Defaults: framework=std, database=none, orm=none (sql when a database is selected).
+On a terminal, new prompts for a missing name, framework, database and ORM.
 `
 
 func main() {
@@ -36,6 +41,10 @@ func main() {
 }
 
 func run(args []string, out, stderr io.Writer) error {
+	return runWithInput(args, os.Stdin, out, stderr)
+}
+
+func runWithInput(args []string, in io.Reader, out, stderr io.Writer) error {
 	ui := newUI(out)
 	if len(args) == 0 {
 		ui.banner()
@@ -48,27 +57,31 @@ func run(args []string, out, stderr io.Writer) error {
 		fmt.Fprint(out, help)
 	case "version":
 		if len(args) != 1 {
-			return errors.New("usage: goforge version")
+			return errors.New("usage: goweld version")
 		}
-		fmt.Fprintln(out, "0.1.0")
+		fmt.Fprintln(out, version)
 	case "new":
 		if len(args) == 2 && (args[1] == "--help" || args[1] == "-h") {
 			ui.banner()
 			fmt.Fprint(out, help)
 			return nil
 		}
-		if len(args) < 2 {
-			return errors.New("usage: goforge new NAME [options]")
+		options := scaffold.Options{}
+		remaining := args[1:]
+		if len(remaining) > 0 && !strings.HasPrefix(remaining[0], "-") {
+			options.Name = remaining[0]
+			remaining = remaining[1:]
 		}
-		options := scaffold.Options{Name: args[1]}
 		flags := flag.NewFlagSet("new", flag.ContinueOnError)
 		flags.SetOutput(stderr)
 		install := flags.Bool("install", false, "install dependencies after creating the project")
+		interactive := flags.Bool("interactive", false, "prompt for missing project choices")
+		noInteractive := flags.Bool("no-interactive", false, "use defaults without prompting")
 		flags.StringVar(&options.Module, "module", "", "Go module path")
 		flags.StringVar(&options.Framework, "framework", "std", "std, gin or echo")
 		flags.StringVar(&options.Database, "database", "none", "none, postgres, mysql or sqlite")
 		flags.StringVar(&options.ORM, "orm", "", "none, sql or gorm")
-		if err := flags.Parse(args[2:]); err != nil {
+		if err := flags.Parse(remaining); err != nil {
 			if errors.Is(err, flag.ErrHelp) {
 				return nil
 			}
@@ -77,7 +90,21 @@ func run(args []string, out, stderr io.Writer) error {
 		if flags.NArg() != 0 {
 			return errors.New("provide exactly one project name before the flags")
 		}
+		if *interactive && *noInteractive {
+			return errors.New("choose either --interactive or --no-interactive")
+		}
+		shouldPrompt := *interactive || (!*noInteractive && terminalFile(in) && terminalFile(out))
+		if options.Name == "" && !shouldPrompt {
+			return errors.New("usage: goweld new NAME [options]; use --interactive to choose a project")
+		}
 		ui.banner()
+		if shouldPrompt {
+			provided := make(map[string]bool)
+			flags.Visit(func(f *flag.Flag) { provided[f.Name] = true })
+			if err := promptProject(in, ui, &options, provided); err != nil {
+				return err
+			}
+		}
 		ui.info("Project", options.Name)
 		ui.info("Stack  ", stackSummary(options.Framework, options.Database, options.ORM))
 		fmt.Fprintln(out)
@@ -86,19 +113,19 @@ func run(args []string, out, stderr io.Writer) error {
 		}
 		if *install {
 			if err := installDependencies(ui, options.Name); err != nil {
-				return fmt.Errorf("project %s was created; retry with cd %s && goforge install: %w", options.Name, options.Name, err)
+				return fmt.Errorf("project %s was created; retry with cd %s && goweld install: %w", options.Name, options.Name, err)
 			}
 		}
 		ui.success("Project " + options.Name + " is ready")
 		next := []string{"cd " + options.Name}
 		if !*install {
-			next = append(next, "goforge install")
+			next = append(next, "goweld install")
 		}
-		next = append(next, "goforge run")
+		next = append(next, "goweld run")
 		ui.next(next...)
 	case "generate":
 		if len(args) != 3 {
-			return errors.New("usage: goforge generate model|handler|service NAME")
+			return errors.New("usage: goweld generate model|handler|service NAME")
 		}
 		var path string
 		ui.banner()
@@ -112,7 +139,7 @@ func run(args []string, out, stderr io.Writer) error {
 		ui.info("Created", path)
 	case "install":
 		if len(args) != 1 {
-			return errors.New("usage: goforge install")
+			return errors.New("usage: goweld install")
 		}
 		if _, err := scaffold.Load("."); err != nil {
 			return err
@@ -121,10 +148,10 @@ func run(args []string, out, stderr io.Writer) error {
 		if err := installDependencies(ui, "."); err != nil {
 			return err
 		}
-		ui.next("goforge run")
+		ui.next("goweld run")
 	case "run", "build":
 		if len(args) != 1 {
-			return fmt.Errorf("usage: goforge %s", args[0])
+			return fmt.Errorf("usage: goweld %s", args[0])
 		}
 		if _, err := scaffold.Load("."); err != nil {
 			return err
@@ -138,7 +165,7 @@ func run(args []string, out, stderr io.Writer) error {
 			goArgs = []string{"build", "-o", "bin/server", "./cmd/server"}
 		}
 		command := exec.Command("go", goArgs...)
-		command.Stdin, command.Stdout, command.Stderr = os.Stdin, out, stderr
+		command.Stdin, command.Stdout, command.Stderr = in, out, stderr
 		if args[0] == "build" {
 			if err := ui.task("Building application", func() error { return capturedCommand(command) }); err != nil {
 				return err
@@ -150,7 +177,7 @@ func run(args []string, out, stderr io.Writer) error {
 		fmt.Fprintln(out)
 		return command.Run()
 	default:
-		return fmt.Errorf("unknown command %q; run goforge help", args[0])
+		return fmt.Errorf("unknown command %q; run goweld help", args[0])
 	}
 	return nil
 }

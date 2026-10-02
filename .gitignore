@@ -1,0 +1,21 @@
+# Local builds and development logs
+/tmp/
+/bin/
+/goforge
+
+# Locally generated test projects
+/shop/
+/myapp/
+
+# Local environment and agent settings
+.env
+.env.*
+!.env.example
+/.agents/
+/.codex/
+/.aws/
+
+# Local database files
+*.db
+*.db-shm
+*.db-wal

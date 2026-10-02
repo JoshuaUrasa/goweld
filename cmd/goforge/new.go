@@ -1,29 +1,8 @@
 package main
 
-import (
-	"os"
-)
+import "github.com/JoshuaUrasa/goforge/internal/scaffold"
 
-
-
-
-
-
-func New(name string) error{
-
-		err := os.Mkdir(name,0750)
-
-		if err != nil {
-			if os.IsExist(err){
-
-				return err
-			} else {
-
-				return err
-			}
-
-		} else {
-
-				return  nil
-}
+// New creates a project using the default standard-library HTTP template.
+func New(name string) error {
+	return scaffold.Create(".", scaffold.Options{Name: name, Framework: "std", Database: "none"})
 }
